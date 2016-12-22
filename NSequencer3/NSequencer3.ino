@@ -1,6 +1,6 @@
 /* *****************************************************************************************************
  * 
- * NSEQUENCER firmware v3: (pronounc.:"ènzequènzer 3" in Ancona vernacular)
+ * NSEQUENCER firmware v3L: (pronounc.:"ènzequènzer 3" in Ancona vernacular)
  *      for
  * Soundmachines NS-1 nanosynth, based on Arduino Leonardo
  *   authored by
@@ -8,6 +8,7 @@
  * 
  * Description:
  * MIDI+VOLTAGE TRIG Step sequencer for the NS-1 with variable stuttering and reset
+ * v3L adds sequencer information with two RGBdigits (available online from www.rgbdigit.com)
  * 
  * Features:
  * Rising Edge Clock Input drives the step sequencer. (IN_CLK), or...
@@ -61,9 +62,12 @@
 #include <Arduino.h>
 #include <inttypes.h>
 #include <MIDIUSB.h>
+#include <Wire.h>
+#include <Adafruit_NeoPixel.h>
 #include "NSequencerGuts.h"
 #include "NSConfig.h"
 #include "fakeTimer.h"
+#include "RGBDigit.h"
 
 /* GLOBALS */
 uint8_t *scaleList[] = { chromSc, majSc, minSc, pentaSc };
@@ -90,6 +94,7 @@ uint8_t  clockTap = 0;
 #endif
 uint8_t  midiPresent = 0;
 uint8_t  rcnt = 0;
+int8_t  prevRcnt = -1;
 uint8_t  wcnt = 0;
 uint8_t  reset = 0;
 int8_t  retrigFlag = 0;
@@ -140,6 +145,12 @@ void setup() {
   pinMode(OUT_TRIG, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(IN_CLK), onCLKInterrupt, RISING);
   attachInterrupt(digitalPinToInterrupt(IN_RST), onRSTInterrupt, RISING);
+  
+  RGB.begin();
+  RGB.show();
+  RGB.setBrightness(bright);
+  delay(500);
+  Wire.begin();
 
   t1.init(1000000, InternalClkInterrupt);
 
@@ -155,6 +166,32 @@ void dbgprint(const char * str, int32_t val) {
   Serial.print(str); Serial.println(val);
 #endif
 }
+
+uint8_t waitTurn = 0;
+void processRGBStep() {
+  waitTurn = (++waitTurn & 0xF);
+  if ( prevRcnt != rcnt || waitTurn == 0) {
+    //uint32_t meanColor = pitch[rcnt] << (PITCH_DIVISOR + 8); // map a 0-127 val to 24bit
+    uint32_t meanColor = min(2 + (pitch[rcnt]), 63); // assumes pitch from 0-63
+    uint8_t meanR = (meanColor & 0x7) << 5;
+    uint8_t meanG = (meanColor & 0x18) << 3;
+    uint8_t meanB = (meanColor & 0x30) << 2;
+    digit1 = rcnt+1; // Hp: 8 steps! no more!
+    digitToRGBDigit(digit1, meanR+Rrand, meanG+Grand, meanB+Brand);
+    uint8_t intens = 8 + mod[rcnt] / 32;
+    RGB.setBrightness(min(intens,40));
+    programRGB(&RGB);
+ /*   Serial.print("COL: "); Serial.println(meanColor);
+    Serial.print("R: "); Serial.println(meanR);
+    Serial.print("G: "); Serial.println(meanG);
+    Serial.print("B: "); Serial.println(meanB);
+    Serial.print("INT: "); Serial.println(intens);*/
+    prevRcnt = rcnt;
+  }
+}
+
+
+
 
 void InternalClkInterrupt() {
   clkFlag = CLKSRC_INT;
@@ -414,6 +451,7 @@ void unGateTrig() {
       if ( tmpMillis - fireTs > (clkPeriod_ms[midiPresent ? SRC_MIDI : SRC_EXT] >> (tempoMul + 1)) - 15 ) {
         gate = 0;
         //dbgprint("UNGATE", 0);
+        //RGB.setBrightness(0);
         digitalWrite(OUT_GATE, LOW); // go low before going high again
       }
     }
@@ -437,8 +475,10 @@ void loop() {
   if ( clkFlag ) {
     digitalWrite( OUT_LED, HIGH );
     clkAction();
+    // TODO: print STEP to 7SEGM (and change slightly curr color comb? or do it in NoteFire? change colour depending on pitch in NoteFire?)
     // SCHEDULE RETRIG IN SYNC WITH LAST CLK
     if ( retrigFlag == 1 ) {
+      // TODO: print T to 7SEGM
       midiClkDivisor = TWELVE / (tempoMul+2);
       t1.reinit(clkPeriod[midiPresent ? SRC_MIDI : SRC_EXT] >> (tempoMul + 1), NULL);
       retrigFlag = 0;
@@ -456,16 +496,24 @@ void loop() {
   MidiTimeRead();
   MidiNoteRead();
 
+  // TODO: if MIDI Present write M on 2nd 7SEGM, else E (for EXT)
+
   // INPUT SENSE
   inputSense();
 
+  // TODO: print R if reset
+
   // SAMPLE
   if ( sample == 1) {
+    // TODO: QUI scrivi S su 7SEGM
     doSample();
   }
 
+  // RGBDigit functions
+  processRGBStep();
+
   // UNGATE-UNTRIG
-  unGateTrig();
+  unGateTrig(); // TODO: also untrig the 7SEGM LEDs? Maybe for 2nd digit so I can see the tempo
 
   // PROCESS ANY TS GATHERED IF ANY
   processTimestamps();

@@ -2,6 +2,7 @@
 #define NSEQUENCER_GUTS_H
 
 #include "fakeTimer.h"
+#include "RGBDigit.h"
 
 /****
  * HARDWARE STUFF
@@ -14,6 +15,7 @@
 #define IN_MOD      A2
 #define IN_SAMPLE   5
 #define OUT_LED     13
+#define OUT_RGB     4
 //#define OUT_PITCH   DAC0
 //#define OUT_MOD     DAC1
 #define OUT_GATE    11
@@ -24,7 +26,14 @@
 #define TSWIN_BS    3 // bitshift factor for division. Change it with TSWIN_SIZE
 #define PITCH_DIVISOR 4 // divides by 2^4, bitshift division to reduce pitch excursion
 #define ADC_BITS    10 // analogIn reads 1024 values
- 
+
+Adafruit_NeoPixel RGB = Adafruit_NeoPixel(8, OUT_RGB, NEO_GRB + NEO_KHZ800);
+RGBCHARS digit1 = 0; 
+uint8_t R = 0; 
+uint8_t G = 0; 
+uint8_t B = 0;
+uint8_t bright = 25; // start with a moderate brightness to avoid large current draw
+
 
 /****
  * MIDI STUFF
