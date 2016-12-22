@@ -27,8 +27,16 @@
 #define PITCH_DIVISOR 4 // divides by 2^4, bitshift division to reduce pitch excursion
 #define ADC_BITS    10 // analogIn reads 1024 values
 
-Adafruit_NeoPixel RGB = Adafruit_NeoPixel(8, OUT_RGB, NEO_GRB + NEO_KHZ800);
-RGBCHARS digit1 = 0; 
+// this is done in RGBDigit as well
+#ifndef PIXEL_NO
+#define PIXEL_NO    16 // 2x 7segm displays
+#endif 
+Adafruit_NeoPixel RGB = Adafruit_NeoPixel(PIXEL_NO, OUT_RGB, NEO_GRB + NEO_KHZ800);
+RGBCHARS digit1 = OFF; 
+RGBCHARS digit2 = OFF;
+// digit1 and digit2 are number this way:
+#define DIGIT1 0
+#define DIGIT2 1
 uint8_t R = 0; 
 uint8_t G = 0; 
 uint8_t B = 0;

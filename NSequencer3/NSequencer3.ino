@@ -48,6 +48,9 @@
  * Glide?
  * Selectable musical scale by external analog in
  * 
+ * Bugs:
+ * the top green led will flash on the first digit sometimes
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
  * SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL 
  * THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES 
@@ -177,7 +180,19 @@ void processRGBStep() {
     uint8_t meanG = (meanColor & 0x18) << 3;
     uint8_t meanB = (meanColor & 0x30) << 2;
     digit1 = rcnt+1; // Hp: 8 steps! no more!
-    digitToRGBDigit(digit1, meanR+Rrand, meanG+Grand, meanB+Brand);
+    digitToRGBDigit(digit1, DIGIT1, meanR+Rrand, meanG+Grand, meanB+Brand);
+    if ( reset ) {
+      digit2 = LOWERR;
+    } else if ( retrig ) {
+      digit2 = LOWERT;
+    } else if ( sample ) {
+      digit2 = UPPERS;
+    } else if ( midiPresent ) {
+      digit2 = UPPERM;
+    } else {
+      digit2 = UPPERI; // non sto gestendo il caso di clock esterno (ma se lo tratto come tap no problem)
+    }
+    digitToRGBDigit(digit2, DIGIT2, meanR+Rrand, meanG+Grand, meanB+Brand);
     uint8_t intens = 8 + mod[rcnt] / 32;
     RGB.setBrightness(min(intens,40));
     programRGB(&RGB);
@@ -294,6 +309,8 @@ void noteFire() {
   // digiout gate up (va bene abbassarlo appena arriva un clk o è troppo tardi?)
   // digi out trig up (abbassare dopo 5ms)
   fireTs = millis();
+  lightRGBDot(1, 0);
+  lightRGBDot(1, 1);
   dbgprint("\nFIRING ", rcnt); dbgprint("Pitch: ", pitch[rcnt]); dbgprint("Mod: ", mod[rcnt]);
   uint8_t i;
 #ifdef SHOW_STEPS
@@ -446,6 +463,7 @@ void unGateTrig() {
         gate = 0;
         //dbgprint("UNGATE", 0);
         digitalWrite(OUT_GATE, LOW); // go low before going high again
+        lightRGBDot(0, 0);
       }
     } else {
       if ( tmpMillis - fireTs > (clkPeriod_ms[midiPresent ? SRC_MIDI : SRC_EXT] >> (tempoMul + 1)) - 15 ) {
@@ -453,6 +471,7 @@ void unGateTrig() {
         //dbgprint("UNGATE", 0);
         //RGB.setBrightness(0);
         digitalWrite(OUT_GATE, LOW); // go low before going high again
+        lightRGBDot(0, 0);
       }
     }
   }
@@ -463,6 +482,7 @@ void unGateTrig() {
       trig = 0;
       //dbgprint("UNTRIG", 0);
       digitalWrite(OUT_TRIG, LOW);
+      lightRGBDot(0, 1);
     }
   }
 }
