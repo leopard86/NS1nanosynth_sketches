@@ -10,6 +10,7 @@ MIDI+VOLTAGE TRIG Step sequencer for the NS-1 with variable stuttering and reset
 Features:
  * Rising Edge Clock Input drives the step sequencer. (IN_CLK), or...
  * a MIDI DAW sends clock timestamps and notes.
+ * any MIDI source can send a CC 0x77 to fire notes (e.g. tested with Mixxx)
  * Input pitch and mod (IN_PITCH, IN_MOD) are sampled and stored in the current step when IN_SAMPLE is high
  * The pitch is quantized to a musical scale (hard-coded and selectable between chromatic, major, minor, pentatonic)
  * The pitch is not quantized to a musical scale when the MIDI input is present
@@ -32,6 +33,7 @@ Suggested configuration (beginners):
  * Button 2 to IN_SAMPLE
  * Button 3 to IN_RETRIG or IN_RST
  * CTRL1 and CTRL2 to pitch and mod in, or...
+ * Ribbon controller CV out to IN_PITCH and ribbon GATE out to IN_SAMPLE
  * a variable voltage of your choice to IN_TEMPOMUL for regulating stuttering interval
  * OUT_GATE or OUT_TRIG (or OUT_LED) to GATE input of the ADSR
  * Then create a simple VCO-VCF-VCA patch with your NS-1
