@@ -3,7 +3,7 @@
 
 /* COMMENT THESE LINES AS YOU WISH */
 #define MIDI_CHANNEL 0
-#define DEBUG
+//#define DEBUG
 //#define SHOW_STEPS
 //#define EXT_CLOCK_MODE_FOLLOW 1
 #define EXT_CLOCK_MODE_TAP 2

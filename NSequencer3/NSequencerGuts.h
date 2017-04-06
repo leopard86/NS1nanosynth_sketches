@@ -24,7 +24,7 @@
 #define TSWIN_SIZE  8 // allows efficient divisions
 #define MIDITSWIN_SIZE 16 // idem
 #define TSWIN_BS    3 // bitshift factor for division. Change it with TSWIN_SIZE
-#define PITCH_DIVISOR 4 // divides by 2^4, bitshift division to reduce pitch excursion
+#define PITCH_DIVISOR 5 // divide input voltage by 2^PITCH_DIVISOR, bitshift division to reduce pitch excursion
 #define ADC_BITS    10 // analogIn reads 1024 values
 
 // this is done in RGBDigit as well
@@ -60,15 +60,21 @@ enum {
 };
 
 enum {
+  MIDI_TIMECLOCK  = 0xF8,
+  MIDI_START      = 0xFA,
+  MIDI_STOP       = 0xFC,
+};
+
+#define CC_MODWHEEL 1
+#define CC_TRIGGER 0x77 // when received will trigger an immediate CV trigger to synch external CV hardware
+
+enum {
   SRC_MIDI = 0,
   SRC_EXT,
   TOT_SOURCES,
 };
 
-#define MIDI_TIMECLOCK  0xF8
-#define MIDI_START      0xFA
-#define MIDI_STOP       0xFC
-#define CC_MODWHEEL 1
+
 #define MIDI_NORM_FACT 32 // DAC_RANGE / 128, normalize modulation 0-127 values to DAC_RANGE
 #define TWELVE 12 // midi timestamps are sent 12 per 1/8 note. This can be changed for tricks
 #define PRESENCE_COUNTER 2 // if 2 beats are missed (i.e. 2*12 timestamps) the midi clock has vanished

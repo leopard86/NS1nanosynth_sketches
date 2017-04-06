@@ -121,7 +121,7 @@ int8_t processTsFlag = -1;
 uint8_t lastTempoMul;
 uint8_t midiSync = 0;
 uint8_t midiClkDivisor = TWELVE;
-
+uint8_t following_CC_trigger = 0;
 
 /******
    CODE CODE CODE
@@ -218,11 +218,13 @@ void InternalClkInterrupt() {
  */
 void onMidiClkTwelve() {
   clkFlag = CLKSRC_MIDI;
+  following_CC_trigger = 0;
 }
 
 void onRSTInterrupt() { // wasting an interrupt is overkill for the reset
   reset = 1;
   rcnt = 0;
+  following_CC_trigger = 0;
 }
 
 void onCLKInterrupt() {
@@ -334,12 +336,15 @@ void clkAction() {
 
   if ( clkFlag == CLKSRC_EXT ) {
     noteFire();
+    dbgprint("---FIRE EXT",0);
   } else if ( clkFlag == CLKSRC_MIDI ) {
     noteFire();
+    dbgprint("---FIRE MIDI",0);
   } else if ( clkFlag == CLKSRC_INT ) {
-    if ( midiPresent == 0 )
+    if ( midiPresent == 0 && !following_CC_trigger ) {
       noteFire();
-    else
+      dbgprint("---FIRE INT",0);
+    } else 
       midiPresent = max(--midiPresent, 0);
     // non cambiare sorgente t1.reinit(clkPeriod[SRC_EXT], NULL);
   }
@@ -373,6 +378,11 @@ void MidiTimeRead() {
     else if ( e.byte1 == 0 ) {
       return;
     }
+    else if ((e.byte1 & 0xF0) == CCHANGE && e.byte2 == CC_TRIGGER) {
+      onCLKInterrupt(); // treat this like an external clock interrupt
+      dbgprint("CC BPM", e.byte3);
+      following_CC_trigger = 1;
+    }
     else {
       // THIS MIDI PACKET IS NOT A MIDI-REALTIME, STORE IT FOR FUTURE PARSING
       midiReadBuf[midiReadBufIdx].byte1 = e.byte1;
@@ -385,9 +395,9 @@ void MidiTimeRead() {
 }
 
 void MidiParsing(midiEventPacket_t * e) {
-  dbgprint("BYTE 1: ", e->byte1);
-  dbgprint("BYTE 2: ", e->byte2);
-  dbgprint("BYTE 3: ", e->byte3);
+  //dbgprint("BYTE 1: ", e->byte1);
+  //dbgprint("BYTE 2: ", e->byte2);
+  //dbgprint("BYTE 3: ", e->byte3);
   if ( e->byte1 == (NOTEON + MIDI_CHANNEL) ) {
     if (e->byte3 > 0) {
       // STORE (DISCARD MSGS W VELOCITY == 0)
